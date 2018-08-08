@@ -1,0 +1,28 @@
+{
+  "name": "elm-workshop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "elm-app build",
+    "start": "elm-app start",
+    "book": "gitbook serve",
+    "build:book": "gitbook build ./ ./docs",
+    "test": "elm-app test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ewendel/elm-workshop.git"
+  },
+  "author": "Erik Wendel, Ingar Almklov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ewendel/elm-workshop/issues"
+  },
+  "homepage": "https://github.com/ewendel/elm-workshop#readme",
+  "dependencies": {
+    "create-elm-app": "^1.10.2",
+    "gitbook-cli": "^2.3.2"
+  },
+  "devDependencies": {}
+}
