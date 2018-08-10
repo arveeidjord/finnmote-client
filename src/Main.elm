@@ -1,7 +1,10 @@
 module Main exposing (..)
+
 --https://ewendel.github.io/elm-workshop/
 -- import Html.Events exposing (..)
 
+import Api
+import Components exposing (..)
 import Date exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -9,6 +12,14 @@ import Html.Events exposing (onClick)
 import Http
 import Json.Decode as JD exposing (Decoder, andThen, field, int, string)
 import Json.Decode.Extra exposing (fromResult)
+import Messages exposing (..)
+import Models exposing (..)
+import Navigation exposing (Location)
+import Pages exposing (..)
+import Persistence
+import Platform.Cmd exposing (batch)
+import RemoteData exposing (RemoteData(Failure, Loading, NotAsked, Success), WebData, isSuccess)
+import Routes exposing (..)
 import Task exposing (..)
 
 
@@ -20,14 +31,22 @@ import Task exposing (..)
 --         , view = view
 --         , update = update
 --         }
+-- main =
+--     Html.program
+--         { init = init "filter"
+--         , view = view
+--         , update = update
+--         , subscriptions = subscriptions
+--         }
 
 
+main : Program (Maybe Token) Model Msg
 main =
-    Html.program
-        { init = init "filter"
-        , view = view
+    Navigation.programWithFlags OnLocationChange
+        { init = init
+        , view = Pages.view
         , update = update
-        , subscriptions = subscriptions
+        , subscriptions = \model -> Persistence.get OnLoadToken
         }
 
 
@@ -35,48 +54,96 @@ main =
 -- MODEL
 
 
-type alias Model =
-    { topic : String
-    , arrangementResultat : Maybe ArrangementResultat
-    , errorMessage : Maybe String
-    , today : Maybe Date
-    }
+init : Maybe Token -> Location -> ( Model, Cmd Msg )
+init token location =
+    let
+        model =
+            { initialModel
+                | token = Maybe.map RemoteData.succeed token |> Maybe.withDefault RemoteData.NotAsked
+                , route = parseLocation location
+            }
+    in
+    fetchPosts model
+        |> andThen fetchUser
+        |> Tuple.mapSecond batch
 
 
-type alias Arrangement =
-    { id : Int
-    , beskrivelse : String
-    , tidspunkt : Date
-    }
+fetchUser : Model -> ( Model, List (Cmd Msg) )
+fetchUser model =
+    case model.token of
+        Success tok ->
+            ( { model | user = RemoteData.Loading }, [ Api.fetchUser tok ] )
+
+        Failure err ->
+            ( { model | user = RemoteData.Failure err }, [] )
+
+        _ ->
+            ( model, [] )
 
 
-type alias ArrangementResultat =
-    { dagensDato : Date
-    , arrangementer : List Arrangement
-    }
+fetchPosts : Model -> ( Model, List (Cmd Msg) )
+fetchPosts model =
+    ( model, [ Api.fetchPosts ] )
 
 
-init : String -> ( Model, Cmd Msg )
-init topic =
-    Model topic Nothing Nothing Nothing
-        -- , getArrangementer topic
-        -- , Task.perform ReceiveDate Date.now
-        ! [ Task.perform ReceiveDate Date.now, getArrangementer topic ]
+andThen : (a -> ( b, List c )) -> ( a, List c ) -> ( b, List c )
+andThen apply ( a, c ) =
+    let
+        ( b, d ) =
+            apply a
+    in
+    ( b, c ++ d )
+
+
+updateRoute : Route -> Model -> ( Model, List (Cmd Msg) )
+updateRoute route model =
+    ( model, [ Navigation.newUrl <| path route ] )
+
+
+resetForm : Model -> ( Model, List (Cmd msg) )
+resetForm model =
+    case ( model.user, model.account ) of
+        ( Success _, _ ) ->
+            ( { model | form = initialForm }, [] )
+
+        ( _, Success _ ) ->
+            ( { model | form = initialForm }, [] )
+
+        _ ->
+            ( model, [] )
+
+
+saveToken : Model -> ( Model, List (Cmd msg) )
+saveToken model =
+    ( model, [ Persistence.put <| RemoteData.toMaybe model.token ] )
+
+
+removeToken : Model -> ( Model, List (Cmd msg) )
+removeToken model =
+    ( model, [ Persistence.put Nothing ] )
+
+
+reroute : Model -> ( Model, List (Cmd msg) )
+reroute model =
+    case ( model.route, isSuccess model.user, isSuccess model.account ) of
+        ( SignUpRoute, False, True ) ->
+            ( { model | account = RemoteData.NotAsked }, [ Navigation.newUrl <| path LoginRoute ] )
+
+        ( LoginRoute, True, _ ) ->
+            ( model, [ Navigation.modifyUrl <| path HomeRoute ] )
+
+        ( SignUpRoute, True, _ ) ->
+            ( model, [ Navigation.modifyUrl <| path HomeRoute ] )
+
+        ( CreatePostRoute, False, _ ) ->
+            ( { model | route = ErrorRoute }, [ Cmd.none ] )
+
+        _ ->
+            ( model, [ Cmd.none ] )
 
 
 
 -- UPDATE
-
-
-type Msg
-    = MorePlease
-    | NewGif (Result Http.Error ArrangementResultat)
-    | RequestDate
-    | ReceiveDate Date
-    | LoggInn
-
-
-
 -- | OnTime Time
 -- type Msg2
 --     = OnTime Time
@@ -88,35 +155,89 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        MorePlease ->
-            ( model, getArrangementer model.topic )
+        -- MorePlease ->
+        --     ( model, getArrangementer model.topic )
+        -- NewGif (Ok arrangementResultat) ->
+        --     ( { model
+        --         | arrangementResultat = Just arrangementResultat
+        --       }
+        --     , Cmd.none
+        --     )
+        -- NewGif (Err httpError) ->
+        --     ( { model
+        --         | errorMessage = Just (createErrorMessage httpError)
+        --       }
+        --     , Cmd.none
+        --     )
+        -- RequestDate ->
+        --     ( model, Task.perform ReceiveDate Date.now )
+        -- ReceiveDate date ->
+        --     let
+        --         nextModel =
+        --             { model | today = Just date }
+        --     in
+        --     ( nextModel, Cmd.none )
+        -- LoggInn ->
+        --     ( model, Cmd.none )
+        OnLocationChange location ->
+            ( { model | route = parseLocation location }, [] )
+                |> andThen reroute
+                |> Tuple.mapSecond batch
 
-        NewGif (Ok arrangementResultat) ->
-            ( { model
-                | arrangementResultat = Just arrangementResultat
-              }
-            , Cmd.none
-            )
+        UpdateRoute route ->
+            updateRoute route model
+                |> Tuple.mapSecond batch
 
-        NewGif (Err httpError) ->
-            ( { model
-                | errorMessage = Just (createErrorMessage httpError)
-              }
-            , Cmd.none
-            )
+        OnInput form ->
+            ( { model | form = form }, Cmd.none )
 
-        RequestDate ->
-            ( model, Task.perform ReceiveDate Date.now )
+        CreatePost ->
+            ( model, RemoteData.map Api.authenticate model.token |> RemoteData.withDefault Cmd.none )
 
-        ReceiveDate date ->
-            let
-                nextModel =
-                    { model | today = Just date }
-            in
-            ( nextModel, Cmd.none )
+        Logout ->
+            ( { model | user = RemoteData.NotAsked }, [] )
+                |> andThen removeToken
+                |> andThen (updateRoute HomeRoute)
+                |> Tuple.mapSecond batch
 
-        LoggInn ->
-            (model, Cmd.none)
+        SignUp ->
+            ( { model | account = RemoteData.Loading }, Api.fetchAccount model.form )
+
+        Login ->
+            ( { model | token = RemoteData.Loading }, Api.fetchToken model.form )
+
+        OnFetchAccount account ->
+            ( { model | account = account }, [] )
+                |> andThen resetForm
+                |> andThen reroute
+                |> Tuple.mapSecond batch
+
+        OnFetchToken token ->
+            ( { model | token = token }, [] )
+                |> andThen saveToken
+                |> andThen fetchUser
+                |> Tuple.mapSecond batch
+
+        OnFetchUser user ->
+            ( { model | user = user }, [] )
+                |> andThen resetForm
+                |> andThen reroute
+                |> Tuple.mapSecond batch
+
+        OnFetchPosts posts ->
+            ( { model | posts = posts }, Cmd.none )
+
+        OnCreatePost post ->
+            resetForm model
+                |> andThen fetchPosts
+                |> andThen (updateRoute HomeRoute)
+                |> Tuple.mapSecond batch
+
+        OnFetchGraphcoolToken token ->
+            ( model, RemoteData.map (Api.createPost model.form) token |> RemoteData.withDefault Cmd.none )
+
+        OnLoadToken token ->
+            ( { model | token = Maybe.map RemoteData.succeed token |> Maybe.withDefault RemoteData.NotAsked }, Cmd.none )
 
 
 type Error
@@ -152,144 +273,103 @@ createErrorMessage httpError =
 
 view : Model -> Html Msg
 view model =
-    div
-        []
-        [ Html.header
-            [ class "header" ]
-            [ h1
-                [ class "header__title" ]
-                [ text "Finn møte" ]
-            , button
-                [ onClick LoggInn ]
-                [ text "Logg inn" ]
+    case model.route of
+        HomeRoute ->
+            landing model
 
-            -- , button
-            --     [ id "butAdd"
-            --     , class "headerButton"
-            --     , attribute "aria-label" "Add"
-            --     ]
-            --     []
-            ]
-        , div
-            [ class "top" ]
-            [ div
-                []
-                [ h3
-                    []
-                    [ text "Arrangører" ]
-                , div
-                    [ class "arrangoerer" ]
-                    [ div
-                        [ class "arrangoerTemplate"
-                        ]
-                        [ input
-                            [ class "arrangoerChk"
-                            , type_ "checkbox"
-                            ]
-                            []
-                        , label
-                            [ class "arrangoerNavn" ]
-                            []
-                        ]
-                    ]
-                ]
-            , main_
-                [ class "main" ]
-                [ viewNicknamesOrError model
-                , div
-                    [ class "mainContainer" ]
-                    []
-                ]
-            ]
-        ]
+        ReadPostRoute id ->
+            readPost id model
 
+        CreatePostRoute ->
+            createPost model
 
-viewNicknamesOrError : Model -> Html Msg
-viewNicknamesOrError model =
-    case model.errorMessage of
-        Just message ->
-            viewError message
+        LoginRoute ->
+            Pages.login model
 
-        Nothing ->
-            viewArrangementer model.arrangementResultat
+        SignUpRoute ->
+            Pages.signUp model
 
-
-viewArrangementer : Maybe ArrangementResultat -> Html Msg
-viewArrangementer arrangementResultat =
-    case arrangementResultat of
-        Nothing ->
-            div [] [ text "Ingen data" ]
-
-        Just arrangementResultat ->
-            div []
-                [ div []
-                    (List.map viewArrangement arrangementResultat.arrangementer)
-                ]
-
-
-viewTidspunkt : Date -> Html Msg
-viewTidspunkt tidspunkt =
-    div
-        [ class "dato"
-        ]
-        [ h4
-            [ class "arrangementDato" ]
-            [ text (formaterTidspunkt tidspunkt) ]
-        ]
-
-
-formaterTidspunkt : Date -> String
-formaterTidspunkt tidspunkt =
-    -- if Date.day tidspunkt == Date.day getTime then
-    --     "I dag"
-    -- else
-    toString (Date.dayOfWeek tidspunkt) ++ ", " ++ toString (Date.day tidspunkt) ++ " " ++ toString (Date.month tidspunkt)
-
-
-viewArrangement : Arrangement -> Html Msg
-viewArrangement arrangement =
-    div []
-        [ viewTidspunkt arrangement.tidspunkt
-        , div
-            [ class "card"
-            ]
-            [ div
-                [ class "arrangementHeader" ]
-                [ div
-                    []
-                    [ a
-                        [ href "arrangoer.html"
-                        , class "arrangementArrangoer"
-                        ]
-                        [ text "Arrangør" ]
-                    , div
-                        [ class "arrangementTekst midFont" ]
-                        [ text arrangement.beskrivelse ]
-                    , div
-                        [ class "arrangementTaler" ]
-                        []
-                    ]
-                , div
-                    [ class "arrangementKl storFont" ]
-                    []
-                ]
-            ]
-        ]
-
-
-viewError : String -> Html Msg
-viewError errorMessage =
-    let
-        errorHeading =
-            "Couldn't fetch arrangementer at this time."
-    in
-    div []
-        [ h3 [] [ text errorHeading ]
-        , text ("Error: " ++ errorMessage)
-        ]
+        ErrorRoute ->
+            Pages.error "404 Not Found"
 
 
 
+-- div
+--     []
+--     [ Html.header
+--         [ class "header" ]
+--         [ h1
+--             [ class "header__title" ]
+--             [ text "Finn møte" ]
+--         , button
+--             [ onClick LoggInn ]
+--             [ text "Logg inn" ]
+--         -- , button
+--         --     [ id "butAdd"
+--         --     , class "headerButton"
+--         --     , attribute "aria-label" "Add"
+--         --     ]
+--         --     []
+--         ]
+--     , div
+--         [ class "top" ]
+--         [ div
+--             []
+--             [ h3
+--                 []
+--                 [ text "Arrangører" ]
+--             , div
+--                 [ class "arrangoerer" ]
+--                 [ div
+--                     [ class "arrangoerTemplate"
+--                     ]
+--                     [ input
+--                         [ class "arrangoerChk"
+--                         , type_ "checkbox"
+--                         ]
+--                         []
+--                     , label
+--                         [ class "arrangoerNavn" ]
+--                         []
+--                     ]
+--                 ]
+--             ]
+--         , main_
+--             [ class "main" ]
+--             [ viewNicknamesOrError model
+--             , div
+--                 [ class "mainContainer" ]
+--                 []
+--             ]
+--         ]
+--     ]
+-- viewNicknamesOrError : Model -> Html Msg
+-- viewNicknamesOrError model =
+--     case model.errorMessage of
+--         Just message ->
+--             viewError message
+--         Nothing ->
+--             viewArrangementer model.arrangementResultat
+-- viewArrangementer : Maybe ArrangementResultat -> Html Msg
+-- viewArrangementer arrangementResultat =
+--     case arrangementResultat of
+--         Nothing ->
+--             div [] [ text "Ingen data" ]
+--         Just arrangementResultat ->
+--             div []
+--                 [ div []
+--                     (List.map viewArrangement arrangementResultat.arrangementer)
+--                 ]
+-- viewError : String -> Html Msg
+-- viewError errorMessage =
+--     let
+--         errorHeading =
+--             "Couldn't fetch arrangementer at this time."
+--     in
+--     div []
+--         [ h3 [] [ text errorHeading ]
+--         , text ("Error: " ++ errorMessage)
+--         ]
 -- SUBSCRIPTIONS
 
 
@@ -300,39 +380,28 @@ subscriptions model =
 
 
 -- HTTP
-
-
-getArrangementer : String -> Cmd Msg
-getArrangementer topic =
-    let
-        url =
-            "http://localhost:5000/api/arrangement"
-
-        -- ++ topic
-    in
-    Http.send NewGif (Http.get url arrangementResultatDecoder)
-
-
-arrangementResultatDecoder : Decoder ArrangementResultat
-arrangementResultatDecoder =
-    JD.map2 ArrangementResultat
-        (field "dagensDato" date)
-        (field "arrangementer" arrangementListDecoder)
-
-
-arrangementListDecoder : Decoder (List Arrangement)
-arrangementListDecoder =
-    JD.list arrangementDecoder
-
-
-arrangementDecoder : Decoder Arrangement
-arrangementDecoder =
-    JD.map3 Arrangement
-        (field "id" int)
-        (field "beskrivelse" string)
-        (field "tidspunkt" date)
-
-
-date : Decoder Date
-date =
-    string |> JD.andThen (Date.fromString >> fromResult)
+-- getArrangementer : String -> Cmd Msg
+-- getArrangementer topic =
+--     let
+--         url =
+--             "http://localhost:5000/api/arrangement"
+--         -- ++ topic
+--     in
+--     Http.send NewGif (Http.get url arrangementResultatDecoder)
+-- arrangementResultatDecoder : Decoder ArrangementResultat
+-- arrangementResultatDecoder =
+--     JD.map2 ArrangementResultat
+--         (field "dagensDato" date)
+--         (field "arrangementer" arrangementListDecoder)
+-- arrangementListDecoder : Decoder (List Arrangement)
+-- arrangementListDecoder =
+--     JD.list arrangementDecoder
+-- arrangementDecoder : Decoder Arrangement
+-- arrangementDecoder =
+--     JD.map3 Arrangement
+--         (field "id" int)
+--         (field "beskrivelse" string)
+--         (field "tidspunkt" date)
+-- date : Decoder Date
+-- date =
+--     string |> JD.andThen (Date.fromString >> fromResult)
