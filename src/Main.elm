@@ -23,22 +23,6 @@ import Routes exposing (..)
 import Task exposing (..)
 
 
--- import Time exposing (..)
--- import Data
--- main =
---     beginnerProgram
---         { model = init
---         , view = view
---         , update = update
---         }
--- main =
---     Html.program
---         { init = init "filter"
---         , view = view
---         , update = update
---         , subscriptions = subscriptions
---         }
-
 
 main : Program (Maybe Token) Model Msg
 main =
@@ -238,6 +222,9 @@ update msg model =
 
         OnLoadToken token ->
             ( { model | token = Maybe.map RemoteData.succeed token |> Maybe.withDefault RemoteData.NotAsked }, Cmd.none )
+
+        VelgArrangoer ->
+                ( model, Cmd.none )
 
 
 type Error

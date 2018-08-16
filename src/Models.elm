@@ -5,15 +5,22 @@ import RemoteData exposing (RemoteData(NotAsked), WebData)
 import Routes exposing (..)
 
 
-type alias Post =
-    { id : String
-    , title : String
-    , body : String
+type alias Arrangement =
+    { id : Int
+    , beskrivelse : String
+    , arrangoer : String
+    , tidspunkt : Date
+    }
+
+type alias Arrangoer =
+    { id : Int
+    , navn : String
     }
 
 
 type alias Model =
-    { posts : WebData (List Post)
+    { posts : WebData (List Arrangement)
+    ,  arrangoerer : WebData (List Arrangoer)
     , form : Form
     , route : Route
     , user : WebData User
@@ -24,16 +31,11 @@ type alias Model =
 
 type alias Token =
     { accessToken : String
-    , idToken : String
-    , tokenType : String
-    , expiresIn : Int
-    }
+    , userId : Int
 
-
-type alias Arrangement =
-    { id : Int
-    , beskrivelse : String
-    , tidspunkt : Date
+    -- , idToken : String
+    -- , tokenType : String
+    -- , expiresIn : Int
     }
 
 
@@ -44,7 +46,8 @@ type alias ArrangementResultat =
 
 
 type alias Form =
-    { email : String
+    { navn : String
+    , email : String
     , password : String
     , passwordAgain : String
     , postTitle : String
@@ -60,6 +63,7 @@ type alias User =
 initialModel : Model
 initialModel =
     { posts = NotAsked
+    , arrangoerer = NotAsked
     , form = initialForm
     , route = HomeRoute
     , user = NotAsked
@@ -70,4 +74,4 @@ initialModel =
 
 initialForm : Form
 initialForm =
-    { email = "admin@mail.com", password = "admin", passwordAgain = "admin", postTitle = "", postBody = "" }
+    { navn = "Ola Normann", email = "admin@mail.com", password = "admin", passwordAgain = "admin", postTitle = "", postBody = "" }

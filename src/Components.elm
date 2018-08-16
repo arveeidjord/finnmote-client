@@ -17,70 +17,135 @@ layout header main =
 
 authHeader : Html msg
 authHeader =
+    header [ class "header" ]
+        [ nav [ class "topnav" ]
+            [ a [ href <| path HomeRoute, class "tittelBtn" ] [ i [ class "fas fa-bars" ] [] ]
+            , a [ href <| path HomeRoute, class "tittelBtn" ] [ text "Finn møte" ]
+            , div [ class "topnav-right" ]
+                [ a [ href <| path LoginRoute, class "btn" ] [ text "Logg inn" ]
+                , a [ href <| path SignUpRoute, class "btn" ] [ text "Registrer" ]
+                ]
+            ]
+        ]
+
+
+
+-- [ nav []
+--     [ div []
+--         [ a [ href <| path LoginRoute, class "btn" ] [ text "Logg inn" ]
+--         , a [ href <| path SignUpRoute, class "btn" ] [ text "Registrer" ]
+--         ]
+--     ]
+-- ]
+
+
+userHeader : User -> Html Msg
+userHeader user =
     header []
-        [ nav []
-            [ div [ class "nav-wrapper container" ]
-                [ ul [ class "right" ]
-                    [ li []
-                        [ a [ href <| path LoginRoute, class "btn" ] [ text "Login" ] ]
-                    , li []
-                        [ a [ href <| path SignUpRoute, class "btn" ] [ text "Sign Up" ] ]
-                    ]
+        [ nav [ class "topnav" ]
+            [ a [ href <| path CreatePostRoute, class "btn" ] [ text "Nytt arrangement" ]
+            , div [ class "topnav-right" ]
+                [ span [] [ text user.email ]
+                , a [ onClick Logout, class "btn" ] [ text "Logg ut" ]
                 ]
             ]
         ]
 
 
-viewArrangement : Arrangement -> Html Msg
-viewArrangement arrangement =
-    div []
-        [ viewTidspunkt arrangement.tidspunkt
-        , div
-            [ class "card"
-            ]
-            [ div
-                [ class "arrangementHeader" ]
-                [ div
-                    []
-                    [ a
-                        [ href "arrangoer.html"
-                        , class "arrangementArrangoer"
-                        ]
-                        [ text "Arrangør" ]
-                    , div
-                        [ class "arrangementTekst midFont" ]
-                        [ text arrangement.beskrivelse ]
-                    , div
-                        [ class "arrangementTaler" ]
-                        []
-                    ]
-                , div
-                    [ class "arrangementKl storFont" ]
-                    []
-                ]
-            ]
-        ]
+
+-- viewArrangement : Arrangement -> Html Msg
+-- viewArrangement arrangement =
+--     div []
+--         [ viewTidspunkt arrangement.tidspunkt
+--         , div
+--             [ class "card"
+--             ]
+--             [ div
+--                 [ class "arrangementHeader" ]
+--                 [ div
+--                     []
+--                     [ a
+--                         [ href "arrangoer.html"
+--                         , class "arrangementArrangoer"
+--                         ]
+--                         [ text "Arrangør" ]
+--                     , div
+--                         [ class "arrangementTekst midFont" ]
+--                         [ text arrangement.beskrivelse ]
+--                     , div
+--                         [ class "arrangementTaler" ]
+--                         []
+--                     ]
+--                 , div
+--                     [ class "arrangementKl storFont" ]
+--                     []
+--                 ]
+--             ]
+--         ]
 
 
-postCard : Post -> Html Msg
+postCard : Arrangement -> Html Msg
 postCard post =
-    div [ class "col s12 m6 l4" ]
-        [ div [ onClick <| UpdateRoute <| ReadPostRoute post.id, class "card small hoverable grey lighten-4" ]
+    div []
+        [ viewTidspunkt post.tidspunkt
+        , div [ onClick <| UpdateRoute <| ReadPostRoute post.id, class "card small hoverable grey lighten-4" ]
             [ div [ class "card-content" ]
                 [ span [ class "card-title medium" ]
-                    [ text post.title ]
-                , p [] [ text <| String.left 300 post.body ]
+                    [ text post.arrangoer ]
+                , p [] [ text <| String.left 300 post.beskrivelse ]
                 ]
             ]
         ]
 
 
-landingBody : List Post -> Html Msg
+
+-- myStyle : Attribute msg
+-- myStyle =
+--     style
+--         [ ( "backgroundColor", "red" )
+--         , ( "height", "90px" )
+--         , ( "width", "200px" )
+--         ]
+
+
+landingBody : List Arrangement -> Html Msg
 landingBody posts =
     main_ [ class "container" ]
-        [ List.map postCard posts
+        [ div [ class "sidenav" ]
+            [ sidebarTittel "Arrangør"
+            , checkbox VelgArrangoer "Høvåg Bedehus"
+            ]
+        , List.map postCard posts
             |> div [ class "row" ]
         ]
+
+
+checkbox : msg -> String -> Html msg
+checkbox msg name =
+    label []
+        [ input [ type_ "checkbox", onClick msg ] []
+        , text name
+        ]
+
+
+sidebarTittel : String -> Html Msg
+sidebarTittel tittel =
+    div
+        [ class "headerBox"
+        ]
+        [ h4
+            []
+            [ text "Arrangør" ]
+        ]
+
+
+
+-- <div class="sidenav">
+--   <a href="#about">About</a>
+--   <a href="#services">Services</a>
+--   <a href="#clients">Clients</a>
+--   <a href="#contact">Contact</a>
+-- </div>
 
 
 viewTidspunkt : Date -> Html Msg
@@ -114,7 +179,8 @@ login form =
 signUp : Form -> Html Msg
 signUp form =
     authentication
-        [ emailInput form
+        [ navnInput form
+        , emailInput form
         , passwordInput form
         , passwordAgain form
         , a [ onClick SignUp, class "btn right" ] [ text "Sign Up" ]
@@ -153,28 +219,15 @@ loading =
         ]
 
 
-userHeader : User -> Html Msg
-userHeader user =
-    header []
-        [ nav []
-            [ div [ class "nav-wrapper container" ]
-                [ a [ href <| path CreatePostRoute, class "btn" ] [ text "New Post" ]
-                , ul [ class "right" ]
-                    [ li [] [ text user.email ]
-                    , li [] [ a [ onClick Logout, class "btn" ] [ text "Logout" ] ]
-                    ]
-                ]
-            ]
-        ]
-
-
-readPostBody : Post -> Html msg
+readPostBody : Arrangement -> Html msg
 readPostBody post =
     main_ [ class "container" ]
         [ div [ class "row" ]
             [ div [ class "col l6 offset-l3" ]
-                [ h1 [] [ text post.title ]
-                , List.repeat 5 post.body |> List.map (\par -> p [] [ text par ]) |> div []
+                [ --     h1 [] [ text post.title ]
+                  -- ,
+                  --   List.repeat 5 post.beskrivelse |> List.map (\par -> p [] [ text par ]) |> div []
+                  text post.beskrivelse
                 ]
             ]
         ]
@@ -219,6 +272,20 @@ authentication body =
             [ Html.form [ class "col s12 m4 offset-m4" ]
                 body
             ]
+        ]
+
+
+navnInput : Form -> Html Msg
+navnInput form =
+    div [ class "input-field" ]
+        [ i [ class "material-icons prefix" ] [ text "Navn" ]
+        , input
+            [ placeholder "Navn"
+            , type_ "text"
+            , value form.navn
+            , onInput (\navn -> OnInput { form | navn = navn })
+            ]
+            []
         ]
 
 

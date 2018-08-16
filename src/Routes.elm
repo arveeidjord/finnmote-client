@@ -3,13 +3,15 @@ module Routes exposing (..)
 import Navigation exposing (Location)
 import UrlParser exposing (..)
 
+
 type Route
     = HomeRoute
-    | ReadPostRoute String
+    | ReadPostRoute Int
     | CreatePostRoute
     | LoginRoute
     | SignUpRoute
     | ErrorRoute
+
 
 parseLocation : Location -> Route
 parseLocation location =
@@ -20,16 +22,18 @@ parseLocation location =
         Nothing ->
             ErrorRoute
 
+
 matchers : Parser (Route -> a) a
 matchers =
     oneOf
         [ map HomeRoute top
         , map HomeRoute (s "posts")
-        , map ReadPostRoute (s "posts" </> string)
+        , map ReadPostRoute (s "posts" </> int)
         , map CreatePostRoute (s "post")
         , map LoginRoute (s "login")
         , map SignUpRoute (s "signup")
         ]
+
 
 path : Route -> String
 path route =
@@ -37,8 +41,8 @@ path route =
         HomeRoute ->
             "#"
 
-        ReadPostRoute id->
-            "#posts/" ++ id
+        ReadPostRoute id ->
+            "#posts/" ++ toString id
 
         CreatePostRoute ->
             "#post"

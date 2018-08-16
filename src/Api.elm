@@ -5,30 +5,33 @@ import Encoders
 import Http exposing (jsonBody, stringBody)
 import Json.Decode
 import Messages exposing (Msg)
-import Models exposing (Form, Post, Token, User)
+import Models exposing (Arrangement, Form, Token, User)
 import RemoteData
 
 
-graphcool : String
-graphcool =
-    "https://api.graph.cool/simple/v1/cjbm8w2980rge0186pld48aan"
+-- graphcool : String
+-- graphcool =
+--     "https://api.graph.cool/simple/v1/cjbm8w2980rge0186pld48aan"
+-- domain : String
+-- domain =
+--     "https://nookit.eu.auth0.com"
 
 
 domain : String
 domain =
-    "https://nookit.eu.auth0.com"
+    "http://localhost:5000"
 
 
 fetchAccount : Form -> Cmd Msg
 fetchAccount user =
-    Http.post (domain ++ "/dbconnections/signup") (jsonBody <| Encoders.signUp user) (Json.Decode.succeed ())
+    Http.post (domain ++ "/users/register") (jsonBody <| Encoders.signUp user) (Json.Decode.succeed ())
         |> RemoteData.sendRequest
         |> Cmd.map Messages.OnFetchAccount
 
 
 fetchToken : Form -> Cmd Msg
 fetchToken form =
-    Http.post (domain ++ "/oauth/token") (jsonBody <| Encoders.login form) decodeToken
+    Http.post (domain ++ "/users/authenticate") (jsonBody <| Encoders.login form) decodeToken
         |> RemoteData.sendRequest
         |> Cmd.map Messages.OnFetchToken
 
@@ -38,7 +41,7 @@ authorisedRequest token =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token.accessToken ]
-        , url = domain ++ "/userinfo"
+        , url = domain ++ "/users/" ++ toString token.userId
         , body = Http.emptyBody
         , expect = Http.expectJson decodeUser
         , timeout = Nothing
@@ -55,17 +58,17 @@ fetchUser token =
 
 fetchPosts : Cmd Msg
 fetchPosts =
-    Http.post graphcool (jsonBody <| Encoders.postsQuery) decodePosts
+    Http.post (domain ++ "/api/arrangement/sok") (jsonBody <| Encoders.postsQuery) decodePosts
         |> RemoteData.sendRequest
         |> Cmd.map Messages.OnFetchPosts
 
 
-createRequest : Form -> String -> Http.Request Post
+createRequest : Form -> String -> Http.Request Arrangement
 createRequest form token =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = graphcool
+        , url = domain ++ "/api/arrangement/aaaaaaaaaaaaaaaaaaaaa"
         , body = Http.jsonBody <| Encoders.createPost form
         , expect = Http.expectJson Decoders.decodePost
         , timeout = Nothing
@@ -82,6 +85,6 @@ createPost form token =
 
 authenticate : Token -> Cmd Msg
 authenticate token =
-    Http.post graphcool (jsonBody <| Encoders.authenticate token) decodeGraphcoolToken
+    Http.post (domain ++ "/api/arrangement/aaaaaaaaaaaaaaaaaaaaaaaaaa") (jsonBody <| Encoders.authenticate token) decodeGraphcoolToken
         |> RemoteData.sendRequest
         |> Cmd.map Messages.OnFetchGraphcoolToken

@@ -29,7 +29,7 @@ landing model =
             error err
 
 
-readPost : String -> Model -> Html Msg
+readPost : Int -> Model -> Html Msg
 readPost id model =
     case model.posts of
         NotAsked ->
