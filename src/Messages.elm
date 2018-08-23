@@ -3,7 +3,7 @@ module Messages exposing (..)
 -- import Date exposing (..)
 -- import Http
 
-import Models exposing (Arrangement, ArrangementResultat, Form, Token, User)
+import Models exposing (Arrangement, ArrangementResultat, Form, Token, User, Arrangoer)
 import Navigation exposing (Location)
 import RemoteData exposing (WebData)
 import Routes exposing (Route)
@@ -27,6 +27,7 @@ type Msg
     | OnFetchUser (WebData User)
     | OnLoadToken (Maybe Token)
     | OnFetchPosts (WebData (List Arrangement))
+    | OnFetchArrangoerer (WebData (List Arrangoer))
     | OnCreatePost (WebData Arrangement)
-    | OnFetchGraphcoolToken (WebData String)
-    | VelgArrangoer
+    -- | OnFetchGraphcoolToken (WebData String)
+    | VelgArrangoer (Arrangoer)

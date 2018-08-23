@@ -23,7 +23,6 @@ import Routes exposing (..)
 import Task exposing (..)
 
 
-
 main : Program (Maybe Token) Model Msg
 main =
     Navigation.programWithFlags OnLocationChange
@@ -48,6 +47,7 @@ init token location =
             }
     in
     fetchPosts model
+        |> andThen fetchArrangoerer
         |> andThen fetchUser
         |> Tuple.mapSecond batch
 
@@ -68,6 +68,21 @@ fetchUser model =
 fetchPosts : Model -> ( Model, List (Cmd Msg) )
 fetchPosts model =
     ( model, [ Api.fetchPosts ] )
+
+
+fetchArrangoerer : Model -> ( Model, List (Cmd Msg) )
+fetchArrangoerer model =
+    -- case model.arrangoerer of
+    ( model, [ Api.fetchArrangoerer ] )
+
+
+
+-- Success arrangoerer ->
+--     ( { model | arrangoerer = RemoteData.Loading }, [ Api.fetchArrangoerer ] )
+-- Failure err ->
+--     ( { model | user = RemoteData.Failure err }, [] )
+-- _ ->
+--     ( model, [] )
 
 
 andThen : (a -> ( b, List c )) -> ( a, List c ) -> ( b, List c )
@@ -139,30 +154,6 @@ reroute model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        -- MorePlease ->
-        --     ( model, getArrangementer model.topic )
-        -- NewGif (Ok arrangementResultat) ->
-        --     ( { model
-        --         | arrangementResultat = Just arrangementResultat
-        --       }
-        --     , Cmd.none
-        --     )
-        -- NewGif (Err httpError) ->
-        --     ( { model
-        --         | errorMessage = Just (createErrorMessage httpError)
-        --       }
-        --     , Cmd.none
-        --     )
-        -- RequestDate ->
-        --     ( model, Task.perform ReceiveDate Date.now )
-        -- ReceiveDate date ->
-        --     let
-        --         nextModel =
-        --             { model | today = Just date }
-        --     in
-        --     ( nextModel, Cmd.none )
-        -- LoggInn ->
-        --     ( model, Cmd.none )
         OnLocationChange location ->
             ( { model | route = parseLocation location }, [] )
                 |> andThen reroute
@@ -176,8 +167,9 @@ update msg model =
             ( { model | form = form }, Cmd.none )
 
         CreatePost ->
-            ( model, RemoteData.map Api.authenticate model.token |> RemoteData.withDefault Cmd.none )
+            ( model, RemoteData.map (Api.createPost model.form) model.token |> RemoteData.withDefault Cmd.none )
 
+        -- ( model, RemoteData.map Api.authenticate model.token |> RemoteData.withDefault Cmd.none )
         Logout ->
             ( { model | user = RemoteData.NotAsked }, [] )
                 |> andThen removeToken
@@ -211,50 +203,51 @@ update msg model =
         OnFetchPosts posts ->
             ( { model | posts = posts }, Cmd.none )
 
+        OnFetchArrangoerer arrangoerer ->
+            ( { model | arrangoerer = arrangoerer }, Cmd.none )
+
         OnCreatePost post ->
             resetForm model
                 |> andThen fetchPosts
                 |> andThen (updateRoute HomeRoute)
                 |> Tuple.mapSecond batch
 
-        OnFetchGraphcoolToken token ->
-            ( model, RemoteData.map (Api.createPost model.form) token |> RemoteData.withDefault Cmd.none )
-
+        -- OnFetchGraphcoolToken token ->
+        -- ( model, RemoteData.map (Api.createPost model.form) token |> RemoteData.withDefault Cmd.none )
         OnLoadToken token ->
             ( { model | token = Maybe.map RemoteData.succeed token |> Maybe.withDefault RemoteData.NotAsked }, Cmd.none )
 
-        VelgArrangoer ->
-                ( model, Cmd.none )
-
-
-type Error
-    = BadUrl String
-    | Timeout
-    | NetworkError
-    | BadStatus (Http.Response String)
-    | BadPayload String (Http.Response String)
-
-
-createErrorMessage : Http.Error -> String
-createErrorMessage httpError =
-    case httpError of
-        Http.BadUrl message ->
-            message
-
-        Http.Timeout ->
-            "Server is taking too long to respond. Please try again later."
-
-        Http.NetworkError ->
-            "It appears you don't have an Internet connection right now."
-
-        Http.BadStatus response ->
-            response.status.message
-
-        Http.BadPayload message response ->
-            message
+        VelgArrangoer arrangoer ->
+            ( model, Cmd.none )
 
 
 
+-- case List.head <| List.filter (\post -> post.id == id) of
+--     Just post ->
+--         RemoteData.map userHeader model.user
+--             |> RemoteData.withDefault authHeader
+--             |> flip layout (readPostBody post)
+--     Nothing ->
+--         error "404 Not Found"
+-- type Error
+--     = BadUrl String
+--     | Timeout
+--     | NetworkError
+--     | BadStatus (Http.Response String)
+--     | BadPayload String (Http.Response String)
+-- createErrorMessage : Http.Error -> String
+-- createErrorMessage httpError =
+--     case httpError of
+--         Http.BadUrl message ->
+--             message
+--         Http.Timeout ->
+--             "Server is taking too long to respond. Please try again later."
+--         Http.NetworkError ->
+--             "It appears you don't have an Internet connection right now."
+--         Http.BadStatus response ->
+--             response.status.message
+--         Http.BadPayload message response ->
+--             message
 -- VIEW
 
 
@@ -281,82 +274,6 @@ view model =
 
 
 
--- div
---     []
---     [ Html.header
---         [ class "header" ]
---         [ h1
---             [ class "header__title" ]
---             [ text "Finn møte" ]
---         , button
---             [ onClick LoggInn ]
---             [ text "Logg inn" ]
---         -- , button
---         --     [ id "butAdd"
---         --     , class "headerButton"
---         --     , attribute "aria-label" "Add"
---         --     ]
---         --     []
---         ]
---     , div
---         [ class "top" ]
---         [ div
---             []
---             [ h3
---                 []
---                 [ text "Arrangører" ]
---             , div
---                 [ class "arrangoerer" ]
---                 [ div
---                     [ class "arrangoerTemplate"
---                     ]
---                     [ input
---                         [ class "arrangoerChk"
---                         , type_ "checkbox"
---                         ]
---                         []
---                     , label
---                         [ class "arrangoerNavn" ]
---                         []
---                     ]
---                 ]
---             ]
---         , main_
---             [ class "main" ]
---             [ viewNicknamesOrError model
---             , div
---                 [ class "mainContainer" ]
---                 []
---             ]
---         ]
---     ]
--- viewNicknamesOrError : Model -> Html Msg
--- viewNicknamesOrError model =
---     case model.errorMessage of
---         Just message ->
---             viewError message
---         Nothing ->
---             viewArrangementer model.arrangementResultat
--- viewArrangementer : Maybe ArrangementResultat -> Html Msg
--- viewArrangementer arrangementResultat =
---     case arrangementResultat of
---         Nothing ->
---             div [] [ text "Ingen data" ]
---         Just arrangementResultat ->
---             div []
---                 [ div []
---                     (List.map viewArrangement arrangementResultat.arrangementer)
---                 ]
--- viewError : String -> Html Msg
--- viewError errorMessage =
---     let
---         errorHeading =
---             "Couldn't fetch arrangementer at this time."
---     in
---     div []
---         [ h3 [] [ text errorHeading ]
---         , text ("Error: " ++ errorMessage)
---         ]
 -- SUBSCRIPTIONS
 
 

@@ -12,7 +12,9 @@ import Routes exposing (..)
 layout : Html msg -> Html msg -> Html msg
 layout header main =
     div []
-        [ header, main ]
+        [ header
+        , main
+        ]
 
 
 authHeader : Html msg
@@ -108,27 +110,57 @@ postCard post =
 --         ]
 
 
+viewArrangementer : List Arrangement -> List Arrangoer -> Html Msg
+viewArrangementer arrangementer arrangoerer =
+    div []
+        [ sidebarArrangoerer arrangoerer
+        , landingBody arrangementer
+        ]
+
+
 landingBody : List Arrangement -> Html Msg
 landingBody posts =
     main_ [ class "container" ]
-        [ div [ class "sidenav" ]
-            [ sidebarTittel "Arrangør"
-            , checkbox VelgArrangoer "Høvåg Bedehus"
-            ]
-        , List.map postCard posts
+        [ List.map postCard posts
             |> div [ class "row" ]
         ]
 
 
-checkbox : msg -> String -> Html msg
-checkbox msg name =
-    label []
-        [ input [ type_ "checkbox", onClick msg ] []
-        , text name
+sidebarArrangoerer : List Arrangoer -> Html Msg
+sidebarArrangoerer arrangoerer =
+    div [ class "sidenav" ]
+        [ sidebarTittel "Arrangør"
+        , div []
+            (List.map sidebarChk arrangoerer)
         ]
 
 
-sidebarTittel : String -> Html Msg
+sidebarChk : Arrangoer -> Html Msg
+sidebarChk arrangoer =
+    label [ class "checkboxContainer" ]
+        [ input [ type_ "checkbox", onClick (VelgArrangoer arrangoer) ] []
+        , span [ class "checkboxCheckmark" ] []
+        , text arrangoer.navn
+        ]
+
+
+
+-- checkbox arrangoer.navn
+-- checkbox : String -> Html msg
+-- checkbox name =
+--     label []
+--         [ input [ type_ "checkbox" ] []
+--         , text name
+--         ]
+-- checkbox : msg -> String -> Html msg
+-- checkbox msg name =
+--     label []
+--         [ input [ type_ "checkbox", onClick msg ] []
+--         , text name
+--         ]
+
+
+sidebarTittel : String -> Html msg
 sidebarTittel tittel =
     div
         [ class "headerBox"

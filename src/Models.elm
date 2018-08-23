@@ -12,15 +12,17 @@ type alias Arrangement =
     , tidspunkt : Date
     }
 
+
 type alias Arrangoer =
     { id : Int
     , navn : String
+    , valgt : Bool
     }
 
 
 type alias Model =
     { posts : WebData (List Arrangement)
-    ,  arrangoerer : WebData (List Arrangoer)
+    , arrangoerer : WebData (List Arrangoer)
     , form : Form
     , route : Route
     , user : WebData User
@@ -50,7 +52,7 @@ type alias Form =
     , email : String
     , password : String
     , passwordAgain : String
-    , postTitle : String
+    , postTidspunkt : Maybe Date
     , postBody : String
     }
 
@@ -74,4 +76,4 @@ initialModel =
 
 initialForm : Form
 initialForm =
-    { navn = "Ola Normann", email = "admin@mail.com", password = "admin", passwordAgain = "admin", postTitle = "", postBody = "" }
+    { navn = "Ola Normann", email = "admin@mail.com", password = "admin", passwordAgain = "admin", postTidspunkt = Nothing, postBody = "" }

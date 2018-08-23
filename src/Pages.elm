@@ -1,6 +1,3 @@
--- landing : Model -> Html msg
-
-
 module Pages exposing (..)
 
 import Components exposing (..)
@@ -18,12 +15,12 @@ landing model =
             div [] []
 
         Loading ->
-            withLoader (div [] [])
+            withLoader (div [] [ Html.text "Loading..." ])
 
         Success posts ->
             RemoteData.map userHeader model.user
                 |> RemoteData.withDefault authHeader
-                |> flip layout (landingBody posts)
+                |> flip layout (viewArrangementer posts (RemoteData.withDefault [] model.arrangoerer))
 
         Failure err ->
             error err

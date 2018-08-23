@@ -4,7 +4,7 @@ import Date
 import Json.Decode as Decoder
 import Json.Decode.Extra exposing (fromResult)
 import Json.Decode.Pipeline as Pipeline
-import Models exposing (Arrangement, Token, User)
+import Models exposing (Arrangement, Token, User, Arrangoer)
 
 
 decodeToken : Decoder.Decoder Token
@@ -39,6 +39,17 @@ decodePost =
         |> Pipeline.required "beskrivelse" Decoder.string
         |> Pipeline.required "arrangoerNavn" Decoder.string
         |> Pipeline.required "tidspunkt" date
+
+decodeArrangoerer : Decoder.Decoder (List Arrangoer)
+decodeArrangoerer =
+    Decoder.list decodeArrangoer
+
+decodeArrangoer : Decoder.Decoder Arrangoer
+decodeArrangoer =
+    Pipeline.decode Arrangoer
+        |> Pipeline.required "id" Decoder.int
+        |> Pipeline.required "navn" Decoder.string
+        |> Pipeline.optional "valgt" Decoder.bool False
 
 
 date : Decoder.Decoder Date.Date

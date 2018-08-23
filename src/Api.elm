@@ -1,6 +1,6 @@
 module Api exposing (..)
 
-import Decoders exposing (decodeGraphcoolToken, decodePosts, decodeToken, decodeUser)
+import Decoders exposing (decodeArrangoerer, decodeGraphcoolToken, decodePosts, decodeToken, decodeUser)
 import Encoders
 import Http exposing (jsonBody, stringBody)
 import Json.Decode
@@ -63,6 +63,13 @@ fetchPosts =
         |> Cmd.map Messages.OnFetchPosts
 
 
+fetchArrangoerer : Cmd Msg
+fetchArrangoerer =
+    Http.get (domain ++ "/api/arrangoer") decodeArrangoerer
+        |> RemoteData.sendRequest
+        |> Cmd.map Messages.OnFetchArrangoerer
+
+
 createRequest : Form -> String -> Http.Request Arrangement
 createRequest form token =
     Http.request
@@ -76,15 +83,15 @@ createRequest form token =
         }
 
 
-createPost : Form -> String -> Cmd Msg
+createPost : Form -> Token -> Cmd Msg
 createPost form token =
-    createRequest form token
+    createRequest form token.accessToken
         |> RemoteData.sendRequest
         |> Cmd.map Messages.OnCreatePost
 
 
-authenticate : Token -> Cmd Msg
-authenticate token =
-    Http.post (domain ++ "/api/arrangement/aaaaaaaaaaaaaaaaaaaaaaaaaa") (jsonBody <| Encoders.authenticate token) decodeGraphcoolToken
-        |> RemoteData.sendRequest
-        |> Cmd.map Messages.OnFetchGraphcoolToken
+-- authenticate : Token -> Cmd Msg
+-- authenticate token =
+--     Http.post (domain ++ "/api/arrangement/aaaaaaaaaaaaaaaaaaaaaaaaaa") (jsonBody <| Encoders.authenticate token) decodeGraphcoolToken
+--         |> RemoteData.sendRequest
+--         |> Cmd.map Messages.OnFetchGraphcoolToken

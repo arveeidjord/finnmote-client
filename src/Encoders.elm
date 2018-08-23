@@ -61,9 +61,17 @@ authenticate token =
 
 createPost : Form -> Encoder.Value
 createPost form =
-    let
-        query =
-            "mutation {createPost(title: \"" ++ form.postTitle ++ "\" body: \"" ++ form.postBody ++ "\"" ++ "){id}}"
-    in
     Encoder.object
-        [ ( "query", Encoder.string query ) ]
+        [ ( "arrangoerId", Encoder.string "1" )
+        , ( "beskrivelse", Encoder.string form.postBody )
+        , ( "tidspunkt", Encoder.string form.postTidspunkt )
+        ]
+
+
+
+-- let
+--     query =
+--         "mutation {createPost(title: \"" ++ form.postTitle ++ "\" body: \"" ++ form.postBody ++ "\"" ++ "){id}}"
+-- in
+-- Encoder.object
+--     [ ( "query", Encoder.string query ) ]
