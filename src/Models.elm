@@ -1,6 +1,7 @@
 module Models exposing (..)
 
 import Date exposing (..)
+import DatePicker exposing (defaultSettings)
 import RemoteData exposing (RemoteData(NotAsked), WebData)
 import Routes exposing (..)
 
@@ -52,8 +53,10 @@ type alias Form =
     , email : String
     , password : String
     , passwordAgain : String
-    , postTidspunkt : Maybe Date
+    , postTidspunkt : String
     , postBody : String
+    , datePicker : DatePicker.DatePicker
+    , date : Maybe Date
     }
 
 
@@ -62,11 +65,11 @@ type alias User =
     }
 
 
-initialModel : Model
-initialModel =
+initialModel : DatePicker.DatePicker -> Model
+initialModel datePicker =
     { posts = NotAsked
     , arrangoerer = NotAsked
-    , form = initialForm
+    , form = initialForm datePicker
     , route = HomeRoute
     , user = NotAsked
     , token = NotAsked
@@ -74,6 +77,14 @@ initialModel =
     }
 
 
-initialForm : Form
-initialForm =
-    { navn = "Ola Normann", email = "admin@mail.com", password = "admin", passwordAgain = "admin", postTidspunkt = Nothing, postBody = "" }
+initialForm : DatePicker.DatePicker -> Form
+initialForm datePicker =
+    { navn = "Ola Normann"
+    , email = "admin@mail.com"
+    , password = "admin"
+    , passwordAgain = "admin"
+    , postTidspunkt = ""
+    , postBody = ""
+    , datePicker = datePicker
+    , date = Nothing
+    }

@@ -3,7 +3,8 @@ module Messages exposing (..)
 -- import Date exposing (..)
 -- import Http
 
-import Models exposing (Arrangement, ArrangementResultat, Form, Token, User, Arrangoer)
+import DatePicker exposing (defaultSettings)
+import Models exposing (Arrangement, ArrangementResultat, Arrangoer, Form, Token, User)
 import Navigation exposing (Location)
 import RemoteData exposing (WebData)
 import Routes exposing (Route)
@@ -29,5 +30,6 @@ type Msg
     | OnFetchPosts (WebData (List Arrangement))
     | OnFetchArrangoerer (WebData (List Arrangoer))
     | OnCreatePost (WebData Arrangement)
-    -- | OnFetchGraphcoolToken (WebData String)
-    | VelgArrangoer (Arrangoer)
+      -- | OnFetchGraphcoolToken (WebData String)
+    | VelgArrangoer Arrangoer
+    | ToDatePicker DatePicker.Msg

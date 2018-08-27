@@ -75,7 +75,7 @@ createRequest form token =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ token ]
-        , url = domain ++ "/api/arrangement/aaaaaaaaaaaaaaaaaaaaa"
+        , url = domain ++ "/api/arrangement"
         , body = Http.jsonBody <| Encoders.createPost form
         , expect = Http.expectJson Decoders.decodePost
         , timeout = Nothing
@@ -88,6 +88,7 @@ createPost form token =
     createRequest form token.accessToken
         |> RemoteData.sendRequest
         |> Cmd.map Messages.OnCreatePost
+
 
 
 -- authenticate : Token -> Cmd Msg

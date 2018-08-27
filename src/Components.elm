@@ -1,6 +1,7 @@
 module Components exposing (..)
 
 import Date exposing (..)
+import DatePicker exposing (defaultSettings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
@@ -265,23 +266,34 @@ readPostBody post =
         ]
 
 
+settings : DatePicker.Settings
+settings =
+    { defaultSettings | dateFormatter = formaterTidspunkt }
+
+
 createPostBody : Form -> Html Msg
 createPostBody form =
     main_ [ class "container " ]
         [ div [ class "row" ]
             [ Html.form [ class "col s12 m8 offset-m2" ]
-                [ div [ class "input-field" ]
-                    [ input
-                        [ placeholder "Post Title"
-                        , value form.postTitle
-                        , type_ "text"
-                        , onInput (\title -> OnInput { form | postTitle = title })
-                        ]
-                        []
-                    ]
+                [ --     div [ class "input-field" ]
+                  --     [ input
+                  --         [ placeholder "Post Title"
+                  --         , value form.postTidspunkt
+                  --         , type_ "text"
+                  --         , onInput (\title -> OnInput { form | postTidspunkt = title })
+                  --         ]
+                  --         []
+                  --     ]
+                  -- ,
+                  label [] [ text "Tidspunkt" ]
+                , DatePicker.view form.date settings form.datePicker
+                    |> Html.map ToDatePicker
+                , label [] [ text "Beskrivelse" ]
                 , div [ class "input-field" ]
                     [ textarea
-                        [ placeholder "Enter post here..."
+                        [ rows 4
+                        , placeholder "Arrangement beskrivelse..."
                         , onInput (\body -> OnInput { form | postBody = body })
                         ]
                         [ text form.postBody ]

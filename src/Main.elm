@@ -4,14 +4,9 @@ module Main exposing (..)
 -- import Html.Events exposing (..)
 
 import Api
-import Components exposing (..)
 import Date exposing (..)
+import DatePicker exposing (DateEvent(..), defaultSettings)
 import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
-import Http
-import Json.Decode as JD exposing (Decoder, andThen, field, int, string)
-import Json.Decode.Extra exposing (fromResult)
 import Messages exposing (..)
 import Models exposing (..)
 import Navigation exposing (Location)
@@ -20,7 +15,6 @@ import Persistence
 import Platform.Cmd exposing (batch)
 import RemoteData exposing (RemoteData(Failure, Loading, NotAsked, Success), WebData, isSuccess)
 import Routes exposing (..)
-import Task exposing (..)
 
 
 main : Program (Maybe Token) Model Msg
@@ -40,8 +34,16 @@ main =
 init : Maybe Token -> Location -> ( Model, Cmd Msg )
 init token location =
     let
+        moonLandingDate =
+            Date.fromString "2018-08-25"
+                |> Result.toMaybe
+                |> Maybe.withDefault (Date.fromTime 0)
+
+        inMo =
+            initialModel (DatePicker.initFromDate moonLandingDate)
+
         model =
-            { initialModel
+            { inMo
                 | token = Maybe.map RemoteData.succeed token |> Maybe.withDefault RemoteData.NotAsked
                 , route = parseLocation location
             }
@@ -63,6 +65,13 @@ fetchUser model =
 
         _ ->
             ( model, [] )
+
+
+
+-- runDatePciker : Model -> Cmd Msg -> ( Model, List (Cmd Msg) )
+-- runDatePciker model datePickerCmd =
+--     ( model, [ datePickerCmd ] )
+-- ( model, [ (ToDatePicker datePickerCmd) ] )
 
 
 fetchPosts : Model -> ( Model, List (Cmd Msg) )
@@ -103,10 +112,18 @@ resetForm : Model -> ( Model, List (Cmd msg) )
 resetForm model =
     case ( model.user, model.account ) of
         ( Success _, _ ) ->
-            ( { model | form = initialForm }, [] )
+            let
+                frm =
+                    model.form
+            in
+            ( { model | form = initialForm frm.datePicker }, [] )
 
         ( _, Success _ ) ->
-            ( { model | form = initialForm }, [] )
+            let
+                frm =
+                    model.form
+            in
+            ( { model | form = initialForm frm.datePicker }, [] )
 
         _ ->
             ( model, [] )
@@ -212,13 +229,65 @@ update msg model =
                 |> andThen (updateRoute HomeRoute)
                 |> Tuple.mapSecond batch
 
+        -- https://medium.com/elm-shorts/updating-nested-records-in-elm-15d162e80480
         -- OnFetchGraphcoolToken token ->
         -- ( model, RemoteData.map (Api.createPost model.form) token |> RemoteData.withDefault Cmd.none )
         OnLoadToken token ->
             ( { model | token = Maybe.map RemoteData.succeed token |> Maybe.withDefault RemoteData.NotAsked }, Cmd.none )
 
         VelgArrangoer arrangoer ->
-            ( model, Cmd.none )
+            -- ( model, Cmd.none )
+            let
+                arrList =
+                    RemoteData.map (toggleArrangoer arrangoer.id) model.arrangoerer
+
+                -- arrList = List.map (toggleArrangoer arrangoer.id) (RemoteData.withDefault [] model.arrangoerer)
+            in
+            ( { model | arrangoerer = arrList }, Api.fetchArrangoerer )
+
+        ToDatePicker msg ->
+            let
+                ( newDatePicker, datePickerFx, event ) =
+                    DatePicker.update settings msg model.form.datePicker
+
+                frm =
+                    model.form
+
+                newFrm =
+                    { frm
+                        | date =
+                            case event of
+                                Changed date ->
+                                    date
+
+                                NoChange ->
+                                    frm.date
+                        , datePicker = newDatePicker
+                    }
+            in
+            ( { model | form = newFrm }, Cmd.map ToDatePicker datePickerFx )
+
+
+toggleArrangoer : Int -> List Arrangoer -> List Arrangoer
+toggleArrangoer arrId arrList =
+    let
+        toggle item =
+            if item.id == arrId then
+                { item | valgt = True }
+            else
+                item
+    in
+    List.map toggle arrList
+
+
+settings : DatePicker.Settings
+settings =
+    let
+        isDisabled date =
+            dayOfWeek date
+                |> flip List.member [ Sat, Sun ]
+    in
+    { defaultSettings | isDisabled = isDisabled }
 
 
 

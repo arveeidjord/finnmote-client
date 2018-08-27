@@ -1,7 +1,13 @@
 module Encoders exposing (..)
 
+-- import Time.DateTime as DateTime exposing (DateTime)
+-- import Time.Iso8601 as Iso8601 exposing (..)
+
+import Date exposing (..)
+import Date.Extra.Format as Format exposing (format, formatUtc, isoMsecOffsetFormat)
 import Json.Encode as Encoder
 import Models exposing (Form, Token)
+import Time exposing (Time)
 
 
 clientId : String
@@ -64,8 +70,18 @@ createPost form =
     Encoder.object
         [ ( "arrangoerId", Encoder.string "1" )
         , ( "beskrivelse", Encoder.string form.postBody )
-        , ( "tidspunkt", Encoder.string form.postTidspunkt )
+        , ( "tidspunkt", Encoder.string (dateToIsoString form.date) )
         ]
+
+
+dateToIsoString : Maybe Date -> String
+dateToIsoString dato =
+    case dato of
+        Just dato ->
+            Format.isoString dato
+
+        Nothing ->
+            ""
 
 
 
